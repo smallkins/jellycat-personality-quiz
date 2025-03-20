@@ -161,5 +161,41 @@
         // Load images when page loads
         document.addEventListener('DOMContentLoaded', fetchAllImages);
     </script>
+    <script>
+  // Check if Contentful loaded
+  if (typeof contentful === 'undefined') {
+    console.error('Contentful SDK failed to load. Trying to load it again...');
+    // Create and append a new script tag
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/contentful@10.6.14/dist/contentful.browser.min.js';
+    script.onload = function() {
+      console.log('Contentful SDK loaded successfully on second attempt');
+      // Initialize your app here
+      initializeApp();
+    };
+    script.onerror = function() {
+      console.error('Failed to load Contentful SDK on second attempt');
+      document.body.innerHTML = '<h1>Error</h1><p>Failed to load required libraries. Please try refreshing the page.</p>';
+    };
+    document.head.appendChild(script);
+  } else {
+    // Initialize normally if contentful is defined
+    initializeApp();
+  }
+
+  function initializeApp() {
+    // Move your Contentful client initialization and other code here
+    const SPACE_ID = 'f7amsws96ivc';
+    const ACCESS_TOKEN = 'fMJsOXgjynBCrasF5c0yCZC0vjB1yO6WOAX8AGHus8g';
+    
+    // Initialize Contentful client
+    const client = contentful.createClient({
+      space: SPACE_ID,
+      accessToken: ACCESS_TOKEN
+    });
+    
+    // The rest of your code...
+  }
+</script>
 </body>
 </html>
