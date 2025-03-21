@@ -11,12 +11,77 @@
             margin: 0 auto;
             padding: 20px;
             text-align: center;
+            background-color: #f9f6f2;
+            color: #333;
         }
         
         h1 {
             color: #333;
             font-size: 28px;
             margin-bottom: 10px;
+        }
+        
+        .quiz-container, .result-container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+        
+        .question-container {
+            margin-bottom: 30px;
+            text-align: left;
+        }
+        
+        .question {
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+        
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .option {
+            padding: 10px 15px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .option:hover {
+            background-color: #e0e0e0;
+        }
+        
+        .selected {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+            margin-top: 20px;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
         }
         
         #imageContainer {
@@ -32,57 +97,140 @@
             max-width: 100%;
             max-height: 500px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            display: none;
         }
         
         #imageTitle {
             margin-top: 15px;
             font-weight: bold;
-            font-size: 18px;
+            font-size: 22px;
         }
         
         #imageDescription {
-            margin-top: 5px;
-            color: #666;
+            margin-top: 10px;
+            color: #333;
+            line-height: 1.6;
         }
         
-        button {
+        .progress-bar {
+            height: 10px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        
+        .progress {
+            height: 100%;
             background-color: #4CAF50;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            font-size: 16px;
-            cursor: pointer;
-            border-radius: 4px;
-            transition: background-color 0.3s;
-        }
-        
-        button:hover {
-            background-color: #45a049;
+            border-radius: 5px;
+            transition: width 0.3s ease;
         }
         
         #loading {
             display: none;
+            margin-top: 15px;
+        }
+        
+        .result-container {
+            display: none;
+        }
+        
+        .restart-button {
+            background-color: #2196F3;
+        }
+        
+        .restart-button:hover {
+            background-color: #0b7dda;
         }
     </style>
 </head>
 <body>
     <h1>What type of Jellycat are you?</h1>
-    <p>Click the button below to discover your Jellycat personality!</p>
+    <p>Answer three quick questions to discover your perfect Jellycat match!</p>
     
-    <button id="randomButton">Find My Jellycat!</button>
-    <p id="loading">Loading...</p>
+    <div class="quiz-container">
+        <div class="progress-bar">
+            <div class="progress" id="progressBar" style="width: 0%"></div>
+        </div>
+        
+        <div id="questionsContainer">
+            <!-- Questions will be inserted here dynamically -->
+        </div>
+        
+        <button id="nextButton" disabled>Next Question</button>
+        <p id="loading">Loading Jellycats...</p>
+    </div>
     
-    <div id="imageContainer">
-        <img id="randomImage" src="" alt="Random Jellycat">
-        <div id="imageTitle"></div>
-        <div id="imageDescription"></div>
+    <div class="result-container" id="resultContainer">
+        <h2>Your Jellycat Match!</h2>
+        
+        <div id="imageContainer">
+            <img id="randomImage" src="" alt="Your Jellycat Match">
+            <div id="imageTitle"></div>
+            <div id="imageDescription"></div>
+        </div>
+        
+        <button class="restart-button" id="restartButton">Take the Quiz Again</button>
     </div>
     
     <!-- Contentful SDK -->
     <script src="https://cdn.jsdelivr.net/npm/contentful@10.6.14/dist/contentful.browser.min.js"></script>
     
     <script>
+      // Check if Contentful loaded
+      if (typeof contentful === 'undefined') {
+        console.error('Contentful SDK failed to load. Trying to load it again...');
+        // Create and append a new script tag
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/contentful@10.6.14/dist/contentful.browser.min.js';
+        script.onload = function() {
+          console.log('Contentful SDK loaded successfully on second attempt');
+          // Initialize your app here
+          initializeApp();
+        };
+        script.onerror = function() {
+          console.error('Failed to load Contentful SDK on second attempt');
+          document.body.innerHTML = '<h1>Error</h1><p>Failed to load required libraries. Please try refreshing the page.</p>';
+        };
+        document.head.appendChild(script);
+      } else {
+        // Initialize normally if contentful is defined
+        console.log('Contentful SDK loaded successfully');
+        initializeApp();
+      }
+
+      function initializeApp() {
+        // Quiz questions
+        const questions = [
+            {
+                question: "How would your friends describe your personality?",
+                options: [
+                    { text: "Gentle and caring", category: "soft" },
+                    { text: "Playful and energetic", category: "playful" },
+                    { text: "Wise and thoughtful", category: "wise" },
+                    { text: "Bold and adventurous", category: "wild" }
+                ]
+            },
+            {
+                question: "What's your ideal weekend activity?",
+                options: [
+                    { text: "Curling up with a good book", category: "soft" },
+                    { text: "Going to a party with friends", category: "playful" },
+                    { text: "Taking a nature walk to reflect", category: "wise" },
+                    { text: "Trying an exciting new experience", category: "wild" }
+                ]
+            },
+            {
+                question: "If you were an animal, which would you be?",
+                options: [
+                    { text: "A cuddly rabbit or cat", category: "soft" },
+                    { text: "A playful puppy or fox", category: "playful" },
+                    { text: "A wise owl or dolphin", category: "wise" },
+                    { text: "A wild tiger or bear", category: "wild" }
+                ]
+            }
+        ];
+        
         // Contentful configuration
         const SPACE_ID = 'f7amsws96ivc';
         const ACCESS_TOKEN = 'fMJsOXgjynBCrasF5c0yCZC0vjB1yO6WOAX8AGHus8g';
@@ -94,14 +242,28 @@
         });
         
         // DOM elements
-        const randomButton = document.getElementById('randomButton');
+        const questionsContainer = document.getElementById('questionsContainer');
+        const nextButton = document.getElementById('nextButton');
         const randomImage = document.getElementById('randomImage');
         const imageTitle = document.getElementById('imageTitle');
         const imageDescription = document.getElementById('imageDescription');
         const loading = document.getElementById('loading');
+        const progressBar = document.getElementById('progressBar');
+        const quizContainer = document.querySelector('.quiz-container');
+        const resultContainer = document.getElementById('resultContainer');
+        const restartButton = document.getElementById('restartButton');
         
-        // Store all images
-        let allImages = [];
+        // Store all images categorized
+        let jellycatsByCategory = {
+            soft: [],
+            playful: [],
+            wise: [],
+            wild: []
+        };
+        
+        // Keep track of current question and answers
+        let currentQuestionIndex = 0;
+        let userSelections = [];
         
         // Function to fetch all images from Contentful
         async function fetchAllImages() {
@@ -113,89 +275,228 @@
                     include: 1
                 });
                 
-                allImages = response.items;
+                // Categorize jellycats based on their tags/categories field
+                response.items.forEach(item => {
+                    // Assume there's a 'category' field that contains one of: soft, playful, wise, wild
+                    const category = item.fields.category || determineCategory(item);
+                    
+                    if (jellycatsByCategory[category]) {
+                        jellycatsByCategory[category].push(item);
+                    } else {
+                        // If no category or invalid category, distribute randomly
+                        const categories = ['soft', 'playful', 'wise', 'wild'];
+                        const randomCategory = categories[Math.floor(Math.random() * categories.length)];
+                        jellycatsByCategory[randomCategory].push(item);
+                    }
+                });
                 
-                if (allImages.length > 0) {
-                    // Enable the button once images are loaded
-                    randomButton.disabled = false;
-                } else {
-                    console.error('No images found in Contentful');
-                }
+                // Make sure each category has at least one item
+                ensureCategoriesHaveItems();
+                
+                // Start the quiz
+                loadQuestion(0);
             } catch (error) {
                 console.error('Error fetching images from Contentful:', error);
+                questionsContainer.innerHTML = `<p>Error loading Jellycats: ${error.message}. Please refresh the page.</p>`;
             } finally {
                 loading.style.display = 'none';
             }
         }
         
-        // Function to display a random image
-        function showRandomImage() {
-            if (allImages.length === 0) {
+        // Fallback function to determine category from item properties if no explicit category
+        function determineCategory(item) {
+            const title = (item.fields.title || '').toLowerCase();
+            const description = (item.fields.description || '').toLowerCase();
+            
+            if (title.includes('soft') || title.includes('cuddly') || 
+                description.includes('soft') || description.includes('gentle')) {
+                return 'soft';
+            } else if (title.includes('play') || title.includes('fun') || 
+                       description.includes('playful') || description.includes('energetic')) {
+                return 'playful';
+            } else if (title.includes('wise') || title.includes('smart') || 
+                       description.includes('wise') || description.includes('thoughtful')) {
+                return 'wise';
+            } else if (title.includes('wild') || title.includes('adventure') || 
+                       description.includes('wild') || description.includes('bold')) {
+                return 'wild';
+            }
+            
+            // Default fallback - distribute evenly
+            const categories = ['soft', 'playful', 'wise', 'wild'];
+            return categories[Math.floor(Math.random() * categories.length)];
+        }
+        
+        // Make sure each category has at least one Jellycat
+        function ensureCategoriesHaveItems() {
+            const categories = ['soft', 'playful', 'wise', 'wild'];
+            const allItems = [...categories.flatMap(cat => jellycatsByCategory[cat])];
+            
+            // If we have any items but some categories are empty
+            if (allItems.length > 0) {
+                categories.forEach(cat => {
+                    if (jellycatsByCategory[cat].length === 0 && allItems.length > 0) {
+                        // Borrow from categories that have multiple items
+                        const donorCats = categories.filter(c => jellycatsByCategory[c].length > 1);
+                        if (donorCats.length > 0) {
+                            const donorCat = donorCats[Math.floor(Math.random() * donorCats.length)];
+                            jellycatsByCategory[cat].push(jellycatsByCategory[donorCat].pop());
+                        } else if (allItems.length > 0) {
+                            // Or just use any item
+                            jellycatsByCategory[cat].push(allItems[0]);
+                        }
+                    }
+                });
+            }
+        }
+        
+        // Function to load a question
+        function loadQuestion(index) {
+            if (index >= questions.length) {
+                showResults();
                 return;
             }
             
-            // Get a random index
-            const randomIndex = Math.floor(Math.random() * allImages.length);
-            const randomEntry = allImages[randomIndex];
+            currentQuestionIndex = index;
+            const question = questions[index];
             
-            // Get image details
-            const title = randomEntry.fields.title;
-            const description = randomEntry.fields.description || '';
-            const imageUrl = randomEntry.fields.image.fields.file.url;
+            // Update progress bar
+            const progress = ((index) / questions.length) * 100;
+            progressBar.style.width = `${progress}%`;
             
-            // Set image and metadata
-            randomImage.src = 'https:' + imageUrl;
-            imageTitle.textContent = title;
-            imageDescription.textContent = description;
+            // Clear previous question
+            questionsContainer.innerHTML = '';
             
-            // Make the image visible
-            randomImage.style.display = 'block';
+            // Create question element
+            const questionContainer = document.createElement('div');
+            questionContainer.className = 'question-container';
+            
+            const questionElement = document.createElement('div');
+            questionElement.className = 'question';
+            questionElement.textContent = question.question;
+            questionContainer.appendChild(questionElement);
+            
+            // Create options
+            const optionsContainer = document.createElement('div');
+            optionsContainer.className = 'options-container';
+            
+            question.options.forEach((option, optionIndex) => {
+                const optionElement = document.createElement('div');
+                optionElement.className = 'option';
+                optionElement.textContent = option.text;
+                optionElement.dataset.category = option.category;
+                optionElement.dataset.index = optionIndex;
+                
+                optionElement.addEventListener('click', () => selectOption(optionElement, optionIndex));
+                
+                optionsContainer.appendChild(optionElement);
+            });
+            
+            questionContainer.appendChild(optionsContainer);
+            questionsContainer.appendChild(questionContainer);
+            
+            // Disable next button until an option is selected
+            nextButton.disabled = true;
         }
         
-        // Add click event listener to the button
-        randomButton.addEventListener('click', showRandomImage);
+        // Function to handle option selection
+        function selectOption(element, optionIndex) {
+            // Clear previous selections
+            const options = document.querySelectorAll('.option');
+            options.forEach(opt => opt.classList.remove('selected'));
+            
+            // Mark this option as selected
+            element.classList.add('selected');
+            
+            // Store the user's selection
+            userSelections[currentQuestionIndex] = {
+                questionIndex: currentQuestionIndex,
+                optionIndex: optionIndex,
+                category: element.dataset.category
+            };
+            
+            // Enable next button
+            nextButton.disabled = false;
+        }
         
-        // Disable button until images are loaded
-        randomButton.disabled = true;
+        // Function to move to the next question
+        function goToNextQuestion() {
+            loadQuestion(currentQuestionIndex + 1);
+        }
         
-        // Load images when page loads
-        document.addEventListener('DOMContentLoaded', fetchAllImages);
+        // Function to show results
+        function showResults() {
+            // Calculate the most common category from user's selections
+            const categoryCounts = {
+                soft: 0,
+                playful: 0,
+                wise: 0,
+                wild: 0
+            };
+            
+            userSelections.forEach(selection => {
+                categoryCounts[selection.category]++;
+            });
+            
+            // Find the dominant category
+            let dominantCategory = 'soft'; // default
+            let maxCount = 0;
+            
+            Object.keys(categoryCounts).forEach(category => {
+                if (categoryCounts[category] > maxCount) {
+                    maxCount = categoryCounts[category];
+                    dominantCategory = category;
+                }
+            });
+            
+            // Get a random Jellycat from the dominant category
+            const categoryJellycats = jellycatsByCategory[dominantCategory];
+            
+            if (categoryJellycats && categoryJellycats.length > 0) {
+                const randomIndex = Math.floor(Math.random() * categoryJellycats.length);
+                const selectedJellycat = categoryJellycats[randomIndex];
+                
+                // Display the Jellycat
+                const title = selectedJellycat.fields.title;
+                const description = selectedJellycat.fields.description || '';
+                const imageUrl = selectedJellycat.fields.image.fields.file.url;
+                
+                randomImage.src = 'https:' + imageUrl;
+                imageTitle.textContent = title;
+                imageDescription.textContent = description;
+                
+                // Hide quiz, show results
+                quizContainer.style.display = 'none';
+                resultContainer.style.display = 'block';
+                
+                // Update progress bar to completion
+                progressBar.style.width = '100%';
+            } else {
+                console.error('No Jellycats found for category:', dominantCategory);
+                imageTitle.textContent = "Oops! We couldn't find your perfect Jellycat match.";
+                imageDescription.textContent = "Please try again or contact support.";
+            }
+        }
+        
+        // Event listeners
+        nextButton.addEventListener('click', goToNextQuestion);
+        
+        restartButton.addEventListener('click', () => {
+            // Reset quiz
+            currentQuestionIndex = 0;
+            userSelections = [];
+            
+            // Show quiz, hide results
+            quizContainer.style.display = 'block';
+            resultContainer.style.display = 'none';
+            
+            // Start from first question
+            loadQuestion(0);
+        });
+        
+        // Start the quiz
+        fetchAllImages();
+      }
     </script>
-    <script>
-  // Check if Contentful loaded
-  if (typeof contentful === 'undefined') {
-    console.error('Contentful SDK failed to load. Trying to load it again...');
-    // Create and append a new script tag
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/contentful@10.6.14/dist/contentful.browser.min.js';
-    script.onload = function() {
-      console.log('Contentful SDK loaded successfully on second attempt');
-      // Initialize your app here
-      initializeApp();
-    };
-    script.onerror = function() {
-      console.error('Failed to load Contentful SDK on second attempt');
-      document.body.innerHTML = '<h1>Error</h1><p>Failed to load required libraries. Please try refreshing the page.</p>';
-    };
-    document.head.appendChild(script);
-  } else {
-    // Initialize normally if contentful is defined
-    initializeApp();
-  }
-
-  function initializeApp() {
-    // Move your Contentful client initialization and other code here
-    const SPACE_ID = 'f7amsws96ivc';
-    const ACCESS_TOKEN = 'fMJsOXgjynBCrasF5c0yCZC0vjB1yO6WOAX8AGHus8g';
-    
-    // Initialize Contentful client
-    const client = contentful.createClient({
-      space: SPACE_ID,
-      accessToken: ACCESS_TOKEN
-    });
-    
-    // The rest of your code...
-  }
-</script>
 </body>
 </html>
